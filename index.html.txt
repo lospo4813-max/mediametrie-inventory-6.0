@@ -1,0 +1,3016 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#E30613">
+    <title>Médiamétrie Inventory Pro v3.0</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&family=Poppins:wght@600;700&display=swap">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        :root {
+            --bg-primary: #F5F5F5;
+            --bg-secondary: #FFFFFF;
+            --text-primary: #333333;
+            --text-secondary: #666666;
+            --border-color: #E5E7EB;
+            --gradient-start: #E30613;
+            --gradient-end: #FF6B35;
+        }
+
+        [data-theme="dark"] {
+            --bg-primary: #1A1A1A;
+            --bg-secondary: #2D2D2D;
+            --text-primary: #E5E5E5;
+            --text-secondary: #A0A0A0;
+            --border-color: #404040;
+        }
+
+        body {
+            font-family: 'Roboto', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: var(--bg-primary);
+            overflow-x: hidden;
+            transition: background 0.3s ease;
+        }
+
+        .screen {
+            display: none;
+            min-height: 100vh;
+            opacity: 0;
+            transform: translateY(20px);
+            transition: opacity 0.4s ease, transform 0.4s ease;
+        }
+
+        .screen.active {
+            display: block;
+            animation: fadeIn 0.4s forwards;
+        }
+
+        @keyframes fadeIn {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* NOTIFICATION SYSTÈME */
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: var(--bg-secondary);
+            padding: 16px 20px;
+            border-radius: 12px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+            z-index: 10000;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            transform: translateX(400px);
+            transition: transform 0.3s ease;
+            max-width: 350px;
+        }
+
+        .notification.show {
+            transform: translateX(0);
+        }
+
+        .notification.success { border-left: 4px solid #10B981; }
+        .notification.error { border-left: 4px solid #EF4444; }
+        .notification.warning { border-left: 4px solid #F59E0B; }
+        .notification.info { border-left: 4px solid #3B82F6; }
+
+        .notification-icon { font-size: 24px; }
+        .notification-content { flex: 1; }
+        .notification-title { font-weight: bold; margin-bottom: 4px; color: var(--text-primary); }
+        .notification-message { font-size: 14px; color: var(--text-secondary); }
+
+        /* INDICATEURS */
+        .connection-status {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            background: var(--bg-secondary);
+            padding: 8px 16px;
+            border-radius: 20px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 12px;
+            z-index: 1000;
+            color: var(--text-primary);
+        }
+
+        .connection-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #10B981;
+            animation: pulse 2s infinite;
+        }
+
+        .connection-dot.offline {
+            background: #EF4444;
+            animation: none;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        /* BOUTON THÈME */
+        .theme-toggle {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end));
+            border: none;
+            color: white;
+            font-size: 24px;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+            z-index: 1000;
+            transition: transform 0.3s ease;
+        }
+
+        .theme-toggle:hover {
+            transform: scale(1.1);
+        }
+
+        /* BOUTON SCAN RAPIDE FLOTTANT */
+        .fab-scan {
+            position: fixed;
+            bottom: 90px;
+            right: 20px;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: #10B981;
+            border: none;
+            color: white;
+            font-size: 28px;
+            cursor: pointer;
+            box-shadow: 0 6px 20px rgba(16, 185, 129, 0.4);
+            z-index: 1000;
+            transition: transform 0.3s ease;
+            display: none;
+        }
+
+        .fab-scan.active {
+            display: block;
+        }
+
+        .fab-scan:hover {
+            transform: scale(1.1);
+        }
+
+        /* ÉCRAN DE CONFIGURATION */
+        .setup-screen {
+            position: relative;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            background: url('https://images.unsplash.com/photo-1581094794329-c8112a89af12?w=1920&h=1080&fit=crop') center/cover;
+        }
+
+        .setup-screen::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.6);
+        }
+
+        .setup-box {
+            position: relative;
+            z-index: 10;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 24px;
+            padding: 40px 30px;
+            width: 100%;
+            max-width: 420px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+        }
+
+        .logo-container {
+            width: 120px;
+            height: 120px;
+            background: linear-gradient(135deg, #E30613, #FF6B35);
+            border-radius: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 24px;
+            box-shadow: 0 8px 24px rgba(227, 6, 19, 0.4);
+        }
+
+        .logo-m {
+            font-size: 70px;
+            font-weight: bold;
+            color: white;
+        }
+
+        .title {
+            text-align: center;
+            font-size: 36px;
+            font-weight: bold;
+            font-family: 'Poppins', sans-serif;
+            background: linear-gradient(135deg, #E30613, #FF6B35);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 8px;
+        }
+
+        .subtitle {
+            text-align: center;
+            font-size: 18px;
+            color: #333;
+            font-weight: 600;
+            margin-bottom: 32px;
+        }
+
+        .version-badge {
+            text-align: center;
+            font-size: 12px;
+            color: #999;
+            margin-bottom: 16px;
+        }
+
+        .input-group {
+            margin-bottom: 16px;
+        }
+
+        .input-label {
+            display: block;
+            font-size: 13px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 8px;
+        }
+
+        .input {
+            width: 100%;
+            padding: 16px;
+            border: 2px solid #DDD;
+            border-radius: 12px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+
+        .input:focus {
+            outline: none;
+            border-color: #E30613;
+        }
+
+        .btn-start {
+            width: 100%;
+            padding: 18px;
+            background: linear-gradient(135deg, #E30613, #FF6B35);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 24px;
+            box-shadow: 0 4px 12px rgba(227, 6, 19, 0.3);
+            transition: transform 0.2s;
+        }
+
+        .btn-start:active {
+            transform: scale(0.98);
+        }
+
+        /* HEADER */
+        .header {
+            background: linear-gradient(135deg, #E30613, #FF6B35);
+            color: white;
+            padding: 20px;
+            padding-top: 40px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        .header-top {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 12px;
+        }
+
+        .header-logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .header-logo-box {
+            width: 56px;
+            height: 56px;
+            background: white;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        .header-logo-m {
+            font-size: 32px;
+            font-weight: bold;
+            background: linear-gradient(135deg, #E30613, #FF6B35);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .header-title {
+            font-size: 20px;
+            font-weight: bold;
+            font-family: 'Poppins', sans-serif;
+        }
+
+        .user-badge {
+            background: rgba(0, 0, 0, 0.2);
+            padding: 12px;
+            border-radius: 8px;
+        }
+
+        .stats-container {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+            margin-top: 12px;
+        }
+
+        .stat-box {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 8px;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .stat-number {
+            font-size: 20px;
+            font-weight: bold;
+        }
+
+        .stat-label {
+            font-size: 11px;
+            opacity: 0.9;
+        }
+
+        /* CONTENU */
+        .content {
+            padding: 20px;
+        }
+
+        .section-title {
+            font-size: 12px;
+            font-weight: bold;
+            color: var(--text-secondary);
+            letter-spacing: 0.5px;
+            margin-bottom: 16px;
+        }
+
+        .categories-grid {
+            display: grid;
+            gap: 12px;
+            margin-bottom: 24px;
+        }
+
+        .category-card {
+            background: var(--bg-secondary);
+            border-radius: 16px;
+            padding: 24px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+            cursor: pointer;
+            transition: all 0.3s;
+            border-left: 4px solid;
+        }
+
+        .category-card:active {
+            transform: scale(0.98);
+        }
+
+        .category-card.accessories { border-left-color: #3B82F6; }
+        .category-card.tvm3 { border-left-color: #8B5CF6; }
+        .category-card.streaming { border-left-color: #10B981; }
+        .category-card.history { border-left-color: #F59E0B; }
+        .category-card.qrcodes { border-left-color: #EC4899; }
+        .category-card.dashboard { border-left-color: #06B6D4; }
+        .category-card.settings { border-left-color: #6B7280; }
+
+        .category-icon {
+            font-size: 48px;
+        }
+
+        .category-info {
+            flex: 1;
+        }
+
+        .category-name {
+            font-size: 18px;
+            font-weight: bold;
+            font-family: 'Poppins', sans-serif;
+            color: var(--text-primary);
+        }
+
+        .category-count {
+            font-size: 13px;
+            color: var(--text-secondary);
+            margin-top: 4px;
+        }
+
+        /* SCANNER */
+        .scanner-header {
+            background: linear-gradient(135deg, #E30613, #FF6B35);
+            color: white;
+            padding: 20px;
+            padding-top: 40px;
+        }
+
+        .back-btn {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-size: 14px;
+            cursor: pointer;
+            margin-bottom: 12px;
+            transition: background 0.3s;
+        }
+
+        .back-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        .scanner-zone {
+            background: var(--bg-secondary);
+            margin: 20px;
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        #reader {
+            width: 100%;
+            border-radius: 12px;
+            overflow: hidden;
+            margin: 16px 0;
+            border: 2px solid var(--border-color);
+        }
+
+        #reader video {
+            width: 100%;
+            border-radius: 10px;
+        }
+
+        .scan-controls {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-top: 16px;
+        }
+
+        .flash-toggle {
+            grid-column: 1 / -1;
+            padding: 12px;
+            background: #F59E0B;
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.2s;
+            display: none;
+        }
+
+        .flash-toggle.active {
+            display: block;
+            background: #D97706;
+        }
+
+        .flash-toggle:active {
+            transform: scale(0.98);
+        }
+
+        .btn-scan {
+            padding: 14px;
+            background: linear-gradient(135deg, #E30613, #FF6B35);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .btn-scan:active {
+            transform: scale(0.98);
+        }
+
+        .btn-scan:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .btn-stop {
+            padding: 14px;
+            background: #6B7280;
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .btn-stop:active {
+            transform: scale(0.98);
+        }
+
+        .form-section {
+            background: var(--bg-secondary);
+            margin: 20px;
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 8px;
+        }
+
+        .form-input, .form-select {
+            width: 100%;
+            padding: 14px;
+            border: 2px solid var(--border-color);
+            border-radius: 10px;
+            font-size: 15px;
+            transition: border-color 0.3s;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+        }
+
+        .form-input:focus, .form-select:focus {
+            outline: none;
+            border-color: #E30613;
+        }
+
+        .btn-add {
+            width: 100%;
+            padding: 16px;
+            background: #10B981;
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 16px;
+            transition: transform 0.2s;
+        }
+
+        .btn-add:active {
+            transform: scale(0.98);
+        }
+
+        .status-message {
+            padding: 12px;
+            border-radius: 8px;
+            margin-top: 12px;
+            font-weight: 500;
+        }
+
+        .status-success {
+            background: #D1FAE5;
+            color: #065F46;
+        }
+
+        .status-warning {
+            background: #FEF3C7;
+            color: #92400E;
+        }
+
+        /* TABLEAU */
+        .table-container {
+            background: var(--bg-secondary);
+            margin: 20px;
+            border-radius: 16px;
+            padding: 16px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            overflow-x: auto;
+        }
+
+        .table-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .table-title {
+            font-size: 18px;
+            font-weight: bold;
+            font-family: 'Poppins', sans-serif;
+            color: var(--text-primary);
+        }
+
+        .table-filters {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .filter-btn {
+            padding: 6px 12px;
+            border: 2px solid var(--border-color);
+            background: var(--bg-secondary);
+            border-radius: 8px;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.3s;
+            color: var(--text-primary);
+        }
+
+        .filter-btn.active {
+            background: #E30613;
+            color: white;
+            border-color: #E30613;
+        }
+
+        .search-bar {
+            width: 100%;
+            padding: 14px;
+            border: 2px solid var(--border-color);
+            border-radius: 10px;
+            font-size: 15px;
+            margin-bottom: 16px;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+        }
+
+        .inventory-table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 700px;
+        }
+
+        .inventory-table th {
+            background: linear-gradient(135deg, #E30613, #FF6B35);
+            color: white;
+            padding: 12px;
+            text-align: left;
+            font-size: 13px;
+            font-weight: 600;
+            white-space: nowrap;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .inventory-table th:hover {
+            background: linear-gradient(135deg, #C00510, #E55D2E);
+        }
+
+        .inventory-table th::after {
+            content: ' ⇅';
+            opacity: 0.5;
+        }
+
+        .inventory-table td {
+            padding: 12px;
+            border-bottom: 1px solid var(--border-color);
+            font-size: 14px;
+            color: var(--text-primary);
+        }
+
+        .inventory-table tr:nth-child(even) {
+            background: var(--bg-primary);
+        }
+
+        .inventory-table tr:hover {
+            background: rgba(227, 6, 19, 0.05);
+        }
+
+        .btn-delete {
+            background: #EF4444;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: transform 0.2s;
+        }
+
+        .btn-delete:active {
+            transform: scale(0.95);
+        }
+
+        .action-buttons {
+            display: grid;
+            gap: 12px;
+            margin: 20px;
+        }
+
+        .btn-export, .btn-sync, .btn-clear, .btn-email, .btn-pdf, .btn-back-main {
+            width: 100%;
+            padding: 16px;
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: transform 0.2s;
+        }
+
+        .btn-export { background: #10B981; }
+        .btn-pdf { background: #8B5CF6; }
+        .btn-email { background: #3B82F6; }
+        .btn-sync { background: linear-gradient(135deg, #E30613, #FF6B35); }
+        .btn-clear { background: #EF4444; }
+        .btn-back-main { background: #6B7280; }
+
+        .btn-export:active, .btn-pdf:active, .btn-email:active, 
+        .btn-sync:active, .btn-clear:active, .btn-back-main:active {
+            transform: scale(0.98);
+        }
+
+        /* HISTORIQUE */
+        .history-item {
+            background: var(--bg-secondary);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 12px;
+            border-left: 4px solid;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        }
+
+        .history-item.ajout { border-left-color: #10B981; }
+        .history-item.suppression { border-left-color: #EF4444; }
+        .history-item.modification { border-left-color: #F59E0B; }
+        .history-item.export { border-left-color: #3B82F6; }
+        .history-item.synchronisation { border-left-color: #8B5CF6; }
+
+        .history-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .history-action {
+            font-weight: bold;
+            font-size: 15px;
+            color: var(--text-primary);
+        }
+
+        .history-date {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        .history-details {
+            font-size: 14px;
+            color: var(--text-primary);
+            line-height: 1.5;
+        }
+
+        .history-operator {
+            font-size: 13px;
+            color: var(--text-secondary);
+            margin-top: 8px;
+        }
+
+        .no-history {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--text-secondary);
+        }
+
+        /* QR CODES */
+        .qr-cards-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+            padding: 20px;
+        }
+
+        .qr-card {
+            background: var(--bg-secondary);
+            border-radius: 16px;
+            padding: 20px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            text-align: center;
+        }
+
+        .qr-equipment-name {
+            font-size: 18px;
+            font-weight: bold;
+            font-family: 'Poppins', sans-serif;
+            color: var(--text-primary);
+            margin-bottom: 8px;
+        }
+
+        .qr-equipment-code {
+            font-size: 14px;
+            color: var(--text-secondary);
+            font-family: 'Courier New', monospace;
+            background: var(--bg-primary);
+            padding: 6px 10px;
+            border-radius: 6px;
+            display: inline-block;
+            margin: 8px 0;
+        }
+
+        .qr-display {
+            display: flex;
+            justify-content: center;
+            margin: 16px 0;
+            padding: 16px;
+            background: var(--bg-primary);
+            border-radius: 12px;
+        }
+
+        .qr-category-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: bold;
+            color: white;
+            background: linear-gradient(135deg, #3B82F6, #2563EB);
+            margin-top: 8px;
+        }
+
+        /* DASHBOARD */
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            padding: 20px;
+        }
+
+        .dashboard-card {
+            background: var(--bg-secondary);
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        .dashboard-card-title {
+            font-size: 16px;
+            font-weight: bold;
+            font-family: 'Poppins', sans-serif;
+            color: var(--text-secondary);
+            margin-bottom: 16px;
+        }
+
+        .stat-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 12px 0;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .stat-item:last-child {
+            border-bottom: none;
+        }
+
+        .stat-item-label {
+            font-size: 14px;
+            color: var(--text-secondary);
+        }
+
+        .stat-item-value {
+            font-size: 18px;
+            font-weight: bold;
+            color: var(--text-primary);
+        }
+
+        .chart-container {
+            margin-top: 16px;
+            height: 250px;
+            position: relative;
+        }
+
+        /* PARAMÈTRES */
+        .settings-section {
+            background: var(--bg-secondary);
+            margin: 20px;
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        .settings-section-title {
+            font-size: 16px;
+            font-weight: bold;
+            font-family: 'Poppins', sans-serif;
+            color: var(--text-primary);
+            margin-bottom: 16px;
+            padding-bottom: 12px;
+            border-bottom: 2px solid var(--border-color);
+        }
+
+        .email-list {
+            margin-top: 12px;
+        }
+
+        .email-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px;
+            background: var(--bg-primary);
+            border-radius: 8px;
+            margin-bottom: 8px;
+        }
+
+        .email-item input {
+            flex: 1;
+            padding: 10px;
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            font-size: 14px;
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+        }
+
+        .btn-remove-email {
+            padding: 8px 12px;
+            background: #EF4444;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .btn-save-settings {
+            width: 100%;
+            padding: 14px;
+            background: #10B981;
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 16px;
+        }
+
+        /* MODAL */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 9999;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .modal {
+            background: var(--bg-secondary);
+            border-radius: 16px;
+            padding: 24px;
+            max-width: 500px;
+            width: 100%;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .modal-title {
+            font-size: 20px;
+            font-weight: bold;
+            font-family: 'Poppins', sans-serif;
+            color: var(--text-primary);
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: var(--text-secondary);
+        }
+
+        .modal-body {
+            margin-bottom: 20px;
+            color: var(--text-primary);
+        }
+
+        .duplicate-item {
+            background: #FEF3C7;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 12px;
+            border-left: 4px solid #F59E0B;
+        }
+
+        .duplicate-item-label {
+            font-size: 12px;
+            color: #92400E;
+            font-weight: bold;
+            margin-bottom: 4px;
+        }
+
+        .duplicate-item-value {
+            font-size: 14px;
+            color: #333;
+        }
+
+        .modal-actions {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        .modal-btn {
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .modal-btn:active {
+            transform: scale(0.98);
+        }
+
+        .modal-btn-cancel {
+            background: var(--border-color);
+            color: var(--text-primary);
+        }
+
+        .modal-btn-confirm {
+            background: #E30613;
+            color: white;
+        }
+
+        /* VOICE ASSISTANT */
+        .voice-btn {
+            position: fixed;
+            bottom: 170px;
+            right: 20px;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: #8B5CF6;
+            border: none;
+            color: white;
+            font-size: 28px;
+            cursor: pointer;
+            box-shadow: 0 6px 20px rgba(139, 92, 246, 0.4);
+            z-index: 1000;
+            transition: transform 0.3s ease;
+            display: none;
+        }
+
+        .voice-btn.active {
+            display: block;
+        }
+
+        .voice-btn.listening {
+            animation: voicePulse 1s infinite;
+        }
+
+        @keyframes voicePulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+
+        @media print {
+            body {
+                background: white;
+            }
+            .scanner-header, .action-buttons, .connection-status, .notification, .theme-toggle, .fab-scan, .voice-btn {
+                display: none;
+            }
+            .qr-card {
+                break-inside: avoid;
+                page-break-inside: avoid;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .table-filters {
+                width: 100%;
+            }
+            
+            .filter-btn {
+                flex: 1;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<!-- NOTIFICATION -->
+<div id="notification" class="notification">
+    <div class="notification-icon"></div>
+    <div class="notification-content">
+        <div class="notification-title"></div>
+        <div class="notification-message"></div>
+    </div>
+</div>
+
+<!-- INDICATEUR DE CONNEXION -->
+<div class="connection-status">
+    <div class="connection-dot" id="connectionDot"></div>
+    <span id="connectionText">En ligne</span>
+</div>
+
+<!-- BOUTON THÈME -->
+<button class="theme-toggle" id="themeToggle" onclick="toggleTheme()">🌙</button>
+
+<!-- BOUTON SCAN RAPIDE -->
+<button class="fab-scan" id="fabScan" onclick="quickScan()">⚡</button>
+
+<!-- BOUTON ASSISTANT VOCAL -->
+<button class="voice-btn" id="voiceBtn" onclick="toggleVoice()">🎤</button>
+
+<!-- MODAL DOUBLON -->
+<div id="duplicateModal" class="modal-overlay">
+    <div class="modal">
+        <div class="modal-header">
+            <div class="modal-title">⚠️ Appareil déjà inventorié</div>
+            <button class="modal-close" onclick="closeDuplicateModal()">×</button>
+        </div>
+        <div class="modal-body" id="duplicateInfo"></div>
+        <div class="modal-actions">
+            <button class="modal-btn modal-btn-cancel" onclick="closeDuplicateModal()">Annuler</button>
+            <button class="modal-btn modal-btn-confirm" onclick="confirmDuplicate()">Ajouter quand même</button>
+        </div>
+    </div>
+</div>
+
+<!-- ÉCRAN DE CONFIGURATION -->
+<div id="setupScreen" class="screen active">
+    <div class="setup-screen">
+        <div class="setup-box">
+            <div class="logo-container">
+                <div class="logo-m">M</div>
+            </div>
+            
+            <h1 class="title">Médiamétrie</h1>
+            <div class="subtitle">INVENTAIRE PRO</div>
+            <div class="version-badge">Version 3.0 - Édition Ultime</div>
+            
+            <div class="input-group">
+                <label class="input-label">Nom *</label>
+                <input type="text" id="inputName" class="input" placeholder="Dupont" autocomplete="off">
+            </div>
+            
+            <div class="input-group">
+                <label class="input-label">Identifiant *</label>
+                <input type="text" id="inputId" class="input" placeholder="MED001" autocomplete="off">
+            </div>
+            
+            <button class="btn-start" onclick="startApp()">Commencer</button>
+        </div>
+    </div>
+</div>
+
+<!-- ÉCRAN PRINCIPAL -->
+<div id="mainScreen" class="screen">
+    <div class="header">
+        <div class="header-top">
+            <div class="header-logo">
+                <div class="header-logo-box">
+                    <div class="header-logo-m">M</div>
+                </div>
+                <div>
+                    <div class="header-title">Médiamétrie Inventory</div>
+                </div>
+            </div>
+        </div>
+        <div class="user-badge">
+            <div id="userName"></div>
+            <div id="userId"></div>
+        </div>
+        <div class="stats-container">
+            <div class="stat-box">
+                <div class="stat-number" id="totalAccessoires">0</div>
+                <div class="stat-label">Accessoires</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-number" id="totalTvm3">0</div>
+                <div class="stat-label">TVM3</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-number" id="totalStreaming">0</div>
+                <div class="stat-label">Streaming</div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="content">
+        <div class="section-title">SÉLECTIONNEZ UNE CATÉGORIE</div>
+        
+        <div class="categories-grid">
+            <div class="category-card accessories" onclick="startScan('accessoires', 'Accessoires', '🔌')">
+                <div class="category-icon">🔌</div>
+                <div class="category-info">
+                    <div class="category-name">Accessoires</div>
+                    <div class="category-count"><span id="countAccessoires">0</span> élément(s)</div>
+                </div>
+            </div>
+            
+            <div class="category-card tvm3" onclick="startScan('tvm3', 'TVM3', '📱')">
+                <div class="category-icon">📱</div>
+                <div class="category-info">
+                    <div class="category-name">TVM3</div>
+                    <div class="category-count"><span id="countTvm3">0</span> élément(s)</div>
+                </div>
+            </div>
+            
+            <div class="category-card streaming" onclick="startScan('streaming', 'Streaming Meters', '📡')">
+                <div class="category-icon">📡</div>
+                <div class="category-info">
+                    <div class="category-name">Streaming Meters</div>
+                    <div class="category-count"><span id="countStreaming">0</span> élément(s)</div>
+                </div>
+            </div>
+
+            <div class="category-card dashboard" onclick="showDashboard()">
+                <div class="category-icon">📊</div>
+                <div class="category-info">
+                    <div class="category-name">Tableau de bord</div>
+                    <div class="category-count">Statistiques & Graphiques</div>
+                </div>
+            </div>
+
+            <div class="category-card qrcodes" onclick="showQRCodesScreen()">
+                <div class="category-icon">📱</div>
+                <div class="category-info">
+                    <div class="category-name">QR Codes</div>
+                    <div class="category-count">Génération & Impression</div>
+                </div>
+            </div>
+
+            <div class="category-card history" onclick="showHistoryScreen()">
+                <div class="category-icon">📜</div>
+                <div class="category-info">
+                    <div class="category-name">Historique</div>
+                    <div class="category-count"><span id="countHistory">0</span> action(s)</div>
+                </div>
+            </div>
+
+            <div class="category-card settings" onclick="showSettingsScreen()">
+                <div class="category-icon">⚙️</div>
+                <div class="category-info">
+                    <div class="category-name">Paramètres</div>
+                    <div class="category-count">Configuration & Emails</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ÉCRAN SCANNER -->
+<div id="scanScreen" class="screen">
+    <div class="scanner-header">
+        <button class="back-btn" onclick="backToMain()">← Retour</button>
+        <h2 id="scanTitle"></h2>
+    </div>
+    
+    <div class="scanner-zone">
+        <div id="reader" style="display:none;"></div>
+        <div class="scan-controls">
+            <button class="flash-toggle" id="flashToggle" onclick="toggleFlash()">💡 Flash: OFF</button>
+            <button class="btn-scan" id="startScan">📷 Scanner</button>
+            <button class="btn-stop" id="stopScan" style="display:none;">🛑 Arrêter</button>
+        </div>
+        <div id="scanStatus" style="margin-top: 12px; text-align: center; color: #666; font-size: 14px;"></div>
+    </div>
+    
+    <div class="form-section">
+        <form id="inventoryForm">
+            <div class="form-group">
+                <label class="form-label">Nom / Description *</label>
+                <input type="text" id="nomAppareil" class="form-input" placeholder="Ex: TVM3 série X" required>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">Numéro de série / Code-barres *</label>
+                <input type="text" id="numeroSerie" class="form-input" placeholder="Scanner ou saisir" required>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">État</label>
+                <select id="etatAppareil" class="form-select">
+                    <option>Fonctionnel</option>
+                    <option>En panne</option>
+                    <option>En SAV</option>
+                    <option>En test</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">Quantité</label>
+                <input type="number" id="quantite" class="form-input" placeholder="1" value="1" min="1">
+            </div>
+            
+            <button type="submit" class="btn-add">✅ Ajouter à l'inventaire</button>
+            <div id="statusMessage"></div>
+        </form>
+    </div>
+    
+    <div class="table-container">
+        <div class="table-header">
+            <div class="table-title">📦 Inventaire (<span id="inventoryCount">0</span>)</div>
+            <div class="table-filters">
+                <button class="filter-btn active" data-filter="all">Tous</button>
+                <button class="filter-btn" data-filter="Fonctionnel">✅ Fonctionnel</button>
+                <button class="filter-btn" data-filter="En panne">❌ En panne</button>
+                <button class="filter-btn" data-filter="En SAV">🔧 En SAV</button>
+            </div>
+        </div>
+        <input type="text" id="searchBar" class="search-bar" placeholder="🔍 Rechercher...">
+        <table class="inventory-table">
+            <thead>
+                <tr>
+                    <th onclick="sortTable('type')">Type</th>
+                    <th onclick="sortTable('nom')">Nom</th>
+                    <th onclick="sortTable('numero')">N° Série</th>
+                    <th onclick="sortTable('etat')">État</th>
+                    <th onclick="sortTable('quantite')">Quantité</th>
+                    <th onclick="sortTable('date')">Date</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody id="tableBody"></tbody>
+        </table>
+    </div>
+    
+    <div class="action-buttons">
+        <button class="btn-export" onclick="exportCSV()">
+            <span>📥</span>
+            <span>Télécharger CSV</span>
+        </button>
+        <button class="btn-pdf" onclick="exportPDF()">
+            <span>📄</span>
+            <span>Exporter en PDF</span>
+        </button>
+        <button class="btn-email" onclick="sendEmail()">
+            <span>📧</span>
+            <span>Envoyer par Email</span>
+        </button>
+        <button class="btn-sync" onclick="syncDatabase()">
+            <span>🔄</span>
+            <span>Synchroniser la base</span>
+        </button>
+        <button class="btn-clear" onclick="clearInventory()">
+            <span>🗑️</span>
+            <span>Vider l'inventaire</span>
+        </button>
+        <button class="btn-back-main" onclick="backToMain()">← Retour au menu</button>
+    </div>
+</div>
+
+<!-- ÉCRAN DASHBOARD -->
+<div id="dashboardScreen" class="screen">
+    <div class="scanner-header">
+        <button class="back-btn" onclick="backToMain()">← Retour</button>
+        <h2>📊 Tableau de bord</h2>
+    </div>
+    
+    <div class="dashboard-grid">
+        <div class="dashboard-card">
+            <div class="dashboard-card-title">📈 Statistiques générales</div>
+            <div class="stat-item">
+                <div class="stat-item-label">Total d'équipements</div>
+                <div class="stat-item-value" id="dashTotalItems">0</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-item-label">Accessoires</div>
+                <div class="stat-item-value" id="dashAccessoires">0</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-item-label">TVM3</div>
+                <div class="stat-item-value" id="dashTvm3">0</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-item-label">Streaming Meters</div>
+                <div class="stat-item-value" id="dashStreaming">0</div>
+            </div>
+        </div>
+
+        <div class="dashboard-card">
+            <div class="dashboard-card-title">⚙️ État des équipements</div>
+            <div class="stat-item">
+                <div class="stat-item-label">✅ Fonctionnels</div>
+                <div class="stat-item-value" id="dashFonctionnel">0</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-item-label">❌ En panne</div>
+                <div class="stat-item-value" id="dashPanne">0</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-item-label">🔧 En SAV</div>
+                <div class="stat-item-value" id="dashSAV">0</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-item-label">🧪 En test</div>
+                <div class="stat-item-value" id="dashTest">0</div>
+            </div>
+        </div>
+
+        <div class="dashboard-card">
+            <div class="dashboard-card-title">📅 Activité récente</div>
+            <div class="stat-item">
+                <div class="stat-item-label">Actions aujourd'hui</div>
+                <div class="stat-item-value" id="dashToday">0</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-item-label">Actions cette semaine</div>
+                <div class="stat-item-value" id="dashWeek">0</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-item-label">Total actions</div>
+                <div class="stat-item-value" id="dashTotalActions">0</div>
+            </div>
+        </div>
+
+        <div class="dashboard-card">
+            <div class="dashboard-card-title">📊 Répartition par catégorie</div>
+            <div class="chart-container">
+                <canvas id="categoryChart"></canvas>
+            </div>
+        </div>
+
+        <div class="dashboard-card">
+            <div class="dashboard-card-title">🔧 Répartition par état</div>
+            <div class="chart-container">
+                <canvas id="stateChart"></canvas>
+            </div>
+        </div>
+
+        <div class="dashboard-card">
+            <div class="dashboard-card-title">📈 Activité (7 derniers jours)</div>
+            <div class="chart-container">
+                <canvas id="activityChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <div class="action-buttons">
+        <button class="btn-back-main" onclick="backToMain()">← Retour au menu</button>
+    </div>
+</div>
+
+<!-- ÉCRAN HISTORIQUE -->
+<div id="historyScreen" class="screen">
+    <div class="scanner-header">
+        <button class="back-btn" onclick="backToMain()">← Retour</button>
+        <h2>📜 Historique des actions</h2>
+    </div>
+    
+    <div class="content">
+        <div style="margin-bottom: 20px; padding: 0 20px;">
+            <input type="text" id="historySearch" class="search-bar" placeholder="🔍 Rechercher dans l'historique...">
+        </div>
+        <div id="historyContainer"></div>
+    </div>
+
+    <div class="action-buttons">
+        <button class="btn-export" onclick="exportHistoryCSV()">
+            <span>📥</span>
+            <span>Exporter l'historique (CSV)</span>
+        </button>
+        <button class="btn-clear" onclick="clearHistory()">
+            <span>🗑️</span>
+            <span>Effacer l'historique</span>
+        </button>
+        <button class="btn-back-main" onclick="backToMain()">← Retour au menu</button>
+    </div>
+</div>
+
+<!-- ÉCRAN QR CODES -->
+<div id="qrCodesScreen" class="screen">
+    <div class="scanner-header">
+        <button class="back-btn" onclick="backToMain()">← Retour</button>
+        <h2>📱 QR Codes des Équipements</h2>
+    </div>
+    
+    <div class="content">
+        <div class="qr-cards-grid">
+            <div class="qr-card">
+                <div class="qr-equipment-name">🔌 Câble HDMI Premium</div>
+                <div class="qr-equipment-code">HDMI-2024-001</div>
+                <div class="qr-display" id="qr-hdmi"></div>
+                <div class="qr-category-badge">ACCESSOIRES</div>
+            </div>
+
+            <div class="qr-card">
+                <div class="qr-equipment-name">🎵 Câble Optique Audio</div>
+                <div class="qr-equipment-code">OPT-2024-001</div>
+                <div class="qr-display" id="qr-optique"></div>
+                <div class="qr-category-badge">ACCESSOIRES</div>
+            </div>
+
+            <div class="qr-card">
+                <div class="qr-equipment-name">📡 Répéteur WiFi</div>
+                <div class="qr-equipment-code">WIFI-2024-001</div>
+                <div class="qr-display" id="qr-wifi"></div>
+                <div class="qr-category-badge">ACCESSOIRES</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="action-buttons">
+        <button class="btn-export" onclick="window.print()">
+            <span>🖨️</span>
+            <span>Imprimer les QR Codes</span>
+        </button>
+        <button class="btn-back-main" onclick="backToMain()">← Retour au menu</button>
+    </div>
+</div>
+
+<!-- ÉCRAN PARAMÈTRES -->
+<div id="settingsScreen" class="screen">
+    <div class="scanner-header">
+        <button class="back-btn" onclick="backToMain()">← Retour</button>
+        <h2>⚙️ Paramètres</h2>
+    </div>
+
+    <div class="settings-section">
+        <div class="settings-section-title">📧 Adresses email pour les exports</div>
+        <p style="color: var(--text-secondary); margin-bottom: 16px; font-size: 14px;">
+            Configurez jusqu'à 3 adresses email pour recevoir automatiquement les exports.
+        </p>
+        <div class="email-list" id="emailList"></div>
+        <button class="btn-save-settings" onclick="saveEmailSettings()">💾 Enregistrer les emails</button>
+    </div>
+
+    <div class="action-buttons">
+        <button class="btn-back-main" onclick="backToMain()">← Retour au menu</button>
+    </div>
+</div>
+
+<script>
+// ==================== VARIABLES GLOBALES ====================
+let userData = {};
+let currentCategory = '';
+let currentCategoryName = '';
+let inventaire = [];
+let historique = [];
+let baseAppareils = {
+    "accessoires": {
+        "HDMI-2024-001": "Câble HDMI Premium 2m",
+        "OPT-2024-001": "Câble Optique Audio 1.5m",
+        "WIFI-2024-001": "Répéteur WiFi Dual Band"
+    },
+    "tvm3": {
+        "TVM3-2024-001": "TVM3 Modèle Standard",
+        "TVM3-2024-002": "TVM3 Modèle Pro"
+    },
+    "streaming": {
+        "STR-2024-001": "Streaming Meter Basic",
+        "STR-2024-002": "Streaming Meter Advanced"
+    }
+};
+let html5QrCode = null;
+let filteredItems = [];
+let isScanning = false;
+let currentFilter = 'all';
+let currentSort = { column: 'date', ascending: false };
+let pendingDuplicate = null;
+let flashEnabled = false;
+let currentTrack = null;
+let emailSettings = { email1: '', email2: '', email3: '' };
+let voiceRecognition = null;
+let isListening = false;
+
+const storageKey = "inventaireMediametrie";
+const historyKey = "historiqueMediametrie";
+const emailKey = "emailSettingsMediametrie";
+
+// ==================== SYSTÈME DE NOTIFICATION ====================
+function showNotification(title, message, type = 'info') {
+    const notification = document.getElementById('notification');
+    const icon = notification.querySelector('.notification-icon');
+    const titleEl = notification.querySelector('.notification-title');
+    const messageEl = notification.querySelector('.notification-message');
+    
+    const icons = {
+        success: '✅',
+        error: '❌',
+        warning: '⚠️',
+        info: 'ℹ️'
+    };
+    
+    icon.textContent = icons[type] || icons.info;
+    titleEl.textContent = title;
+    messageEl.textContent = message;
+    
+    notification.className = 'notification ' + type;
+    
+    setTimeout(() => notification.classList.add('show'), 100);
+    
+    setTimeout(() => {
+        notification.classList.remove('show');
+    }, 4000);
+}
+
+// ==================== THÈME SOMBRE/CLAIR ====================
+function toggleTheme() {
+    const html = document.documentElement;
+    const btn = document.getElementById('themeToggle');
+    const currentTheme = html.getAttribute('data-theme');
+    
+    if (currentTheme === 'dark') {
+        html.removeAttribute('data-theme');
+        btn.textContent = '🌙';
+        localStorage.setItem('theme', 'light');
+    } else {
+        html.setAttribute('data-theme', 'dark');
+        btn.textContent = '☀️';
+        localStorage.setItem('theme', 'dark');
+    }
+}
+
+function loadTheme() {
+    const savedTheme = localStorage.getItem('theme');
+    const btn = document.getElementById('themeToggle');
+    if (savedTheme === 'dark') {
+        document.documentElement.setAttribute('data-theme', 'dark');
+        btn.textContent = '☀️';
+    }
+}
+
+// ==================== VÉRIFICATION CONNEXION ====================
+function updateConnectionStatus() {
+    const dot = document.getElementById('connectionDot');
+    const text = document.getElementById('connectionText');
+    
+    if (navigator.onLine) {
+        dot.classList.remove('offline');
+        text.textContent = 'En ligne';
+    } else {
+        dot.classList.add('offline');
+        text.textContent = 'Hors ligne';
+    }
+}
+
+window.addEventListener('online', () => {
+    updateConnectionStatus();
+    showNotification('Connexion rétablie', 'Vous êtes de nouveau en ligne', 'success');
+});
+
+window.addEventListener('offline', () => {
+    updateConnectionStatus();
+    showNotification('Connexion perdue', 'Mode hors ligne activé', 'warning');
+});
+
+// ==================== INITIALISATION ====================
+window.onload = function() {
+    loadTheme();
+    updateConnectionStatus();
+    
+    const saved = localStorage.getItem('mediametrie_user');
+    if (saved) {
+        userData = JSON.parse(saved);
+        document.getElementById('inputName').value = userData.name;
+        document.getElementById('inputId').value = userData.id;
+    }
+    
+    const savedBase = localStorage.getItem("baseAppareils");
+    if(savedBase){
+        baseAppareils = JSON.parse(savedBase);
+    } else {
+        localStorage.setItem("baseAppareils", JSON.stringify(baseAppareils));
+    }
+    
+    inventaire = JSON.parse(localStorage.getItem(storageKey)) || [];
+    historique = JSON.parse(localStorage.getItem(historyKey)) || [];
+    emailSettings = JSON.parse(localStorage.getItem(emailKey)) || { email1: '', email2: '', email3: '' };
+    
+    updateCategoryCounts();
+    
+    const historySearchInput = document.getElementById('historySearch');
+    if (historySearchInput) {
+        historySearchInput.addEventListener('input', e => {
+            renderHistory(e.target.value);
+        });
+    }
+
+    document.querySelectorAll('.filter-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+            this.classList.add('active');
+            currentFilter = this.dataset.filter;
+            renderTable(document.getElementById('searchBar').value);
+        });
+    });
+
+    document.getElementById('inventoryForm').addEventListener('submit', handleInventorySubmit);
+
+    document.getElementById('searchBar').addEventListener('input', e => {
+        const query = e.target.value.toLowerCase();
+        renderTable(query);
+    });
+
+    initVoiceRecognition();
+};
+
+// ==================== DÉMARRER APP ====================
+function startApp() {
+    const name = document.getElementById('inputName').value.trim();
+    const id = document.getElementById('inputId').value.trim().toUpperCase();
+    
+    if (!name || !id) {
+        showNotification('Erreur', 'Veuillez remplir tous les champs', 'error');
+        return;
+    }
+    
+    userData = { name, id };
+    localStorage.setItem('mediametrie_user', JSON.stringify(userData));
+    
+    document.getElementById('userName').textContent = name;
+    document.getElementById('userId').textContent = `ID: ${id}`;
+    
+    updateCategoryCounts();
+    showScreen('mainScreen');
+    showNotification('Bienvenue', `Connecté en tant que ${name}`, 'success');
+    
+    document.getElementById('fabScan').classList.add('active');
+    document.getElementById('voiceBtn').classList.add('active');
+}
+
+// ==================== GESTION DES ÉCRANS ====================
+function showScreen(screenId) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.getElementById(screenId).classList.add('active');
+}
+
+// ==================== MISE À JOUR DES COMPTEURS ====================
+function updateCategoryCounts() {
+    const counts = {
+        'Accessoires': 0,
+        'TVM3': 0,
+        'Streaming Meters': 0
+    };
+    
+    inventaire.forEach(item => {
+        if (counts.hasOwnProperty(item.type)) {
+            counts[item.type]++;
+        }
+    });
+    
+    document.getElementById('countAccessoires').textContent = counts['Accessoires'];
+    document.getElementById('countTvm3').textContent = counts['TVM3'];
+    document.getElementById('countStreaming').textContent = counts['Streaming Meters'];
+    
+    document.getElementById('totalAccessoires').textContent = counts['Accessoires'];
+    document.getElementById('totalTvm3').textContent = counts['TVM3'];
+    document.getElementById('totalStreaming').textContent = counts['Streaming Meters'];
+    
+    document.getElementById('countHistory').textContent = historique.length;
+}
+
+// ==================== HISTORIQUE ====================
+function addToHistory(action, details) {
+    const now = new Date();
+    const dateStr = now.toLocaleDateString('fr-FR', { 
+        day: '2-digit', 
+        month: '2-digit', 
+        year: 'numeric' 
+    });
+    const timeStr = now.toLocaleTimeString('fr-FR', { 
+        hour: '2-digit', 
+        minute: '2-digit', 
+        second: '2-digit' 
+    });
+    
+    historique.unshift({
+        action: action,
+        details: details,
+        date: dateStr,
+        time: timeStr,
+        timestamp: now.getTime(),
+        operateur: userData.name
+    });
+    
+    localStorage.setItem(historyKey, JSON.stringify(historique));
+    updateCategoryCounts();
+}
+
+// ==================== SCANNER AVEC FLASH ET CODE-BARRES ====================
+function startScan(category, categoryName, icon) {
+    currentCategory = category;
+    currentCategoryName = categoryName;
+    document.getElementById('scanTitle').textContent = categoryName;
+    
+    renderTable();
+    showScreen('scanScreen');
+}
+
+document.getElementById('startScan').addEventListener('click', async function() {
+    const startBtn = document.getElementById('startScan');
+    const stopBtn = document.getElementById('stopScan');
+    const readerDiv = document.getElementById('reader');
+    const statusDiv = document.getElementById('scanStatus');
+    const flashBtn = document.getElementById('flashToggle');
+    
+    if (isScanning) {
+        statusDiv.textContent = "⚠️ Scanner déjà actif";
+        return;
+    }
+    
+    try {
+        startBtn.disabled = true;
+        statusDiv.textContent = "📷 Initialisation de la caméra...";
+        readerDiv.style.display = 'block';
+        stopBtn.style.display = 'block';
+        
+        html5QrCode = new Html5Qrcode("reader");
+        
+        const cameras = await Html5Qrcode.getCameras();
+        
+        if (!cameras || cameras.length === 0) {
+            throw new Error("Aucune caméra détectée");
+        }
+        
+        statusDiv.textContent = `📷 Caméra prête - ${cameras.length} caméra(s) disponible(s)`;
+        
+        let cameraId = cameras[0].id;
+        
+        const backCamera = cameras.find(camera => {
+            const label = camera.label.toLowerCase();
+            return label.includes('back') || 
+                   label.includes('rear') || 
+                   label.includes('arrière') ||
+                   label.includes('environment');
+        });
+        
+        if (backCamera) {
+            cameraId = backCamera.id;
+            statusDiv.textContent = `📷 Caméra arrière activée`;
+        } else {
+            cameraId = cameras[cameras.length - 1].id;
+            statusDiv.textContent = `📷 Caméra ${cameras.length > 1 ? 'arrière' : 'principale'} activée`;
+        }
+        
+        await html5QrCode.start(
+            cameraId,
+            {
+                fps: 10,
+                qrbox: { width: 250, height: 250 },
+                aspectRatio: 1.0,
+                formatsToSupport: [
+                    Html5QrcodeSupportedFormats.QR_CODE,
+                    Html5QrcodeSupportedFormats.EAN_13,
+                    Html5QrcodeSupportedFormats.EAN_8,
+                    Html5QrcodeSupportedFormats.CODE_128,
+                    Html5QrcodeSupportedFormats.CODE_39,
+                    Html5QrcodeSupportedFormats.UPC_A,
+                    Html5QrcodeSupportedFormats.UPC_E
+                ]
+            },
+            (decodedText, decodedResult) => {
+                document.getElementById('numeroSerie').value = decodedText;
+                checkDevice(decodedText);
+                statusDiv.textContent = "✅ Code scanné avec succès !";
+                playBeep();
+                showNotification('Scan réussi', `Code: ${decodedText}`, 'success');
+                
+                setTimeout(() => {
+                    stopScanning();
+                }, 500);
+            },
+            (errorMessage) => {
+                // Erreurs de scan normales
+            }
+        );
+        
+        isScanning = true;
+        flashBtn.style.display = 'block';
+        statusDiv.textContent = "📸 Scan en cours... QR Code ou Code-barres";
+        
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ 
+                video: { facingMode: 'environment' } 
+            });
+            currentTrack = stream.getVideoTracks()[0];
+            
+            const capabilities = currentTrack.getCapabilities();
+            if (capabilities.torch) {
+                flashBtn.style.display = 'block';
+            }
+        } catch (e) {
+            console.log('Flash non disponible:', e);
+        }
+        
+    } catch (err) {
+        console.error("Erreur caméra:", err);
+        statusDiv.textContent = "❌ Erreur: " + err.message;
+        readerDiv.style.display = 'none';
+        stopBtn.style.display = 'none';
+        startBtn.disabled = false;
+        showNotification('Erreur caméra', err.message, 'error');
+    }
+});
+
+document.getElementById('stopScan').addEventListener('click', stopScanning);
+
+function stopScanning() {
+    if (html5QrCode && isScanning) {
+        html5QrCode.stop().then(() => {
+            document.getElementById('reader').style.display = 'none';
+            document.getElementById('stopScan').style.display = 'none';
+            document.getElementById('flashToggle').style.display = 'none';
+            document.getElementById('startScan').disabled = false;
+            document.getElementById('scanStatus').textContent = "";
+            isScanning = false;
+            flashEnabled = false;
+            if (currentTrack) {
+                currentTrack.stop();
+                currentTrack = null;
+            }
+            html5QrCode = null;
+        }).catch(err => {
+            console.error("Erreur arrêt:", err);
+            document.getElementById('reader').style.display = 'none';
+            document.getElementById('stopScan').style.display = 'none';
+            document.getElementById('flashToggle').style.display = 'none';
+            document.getElementById('startScan').disabled = false;
+            isScanning = false;
+            if (currentTrack) {
+                currentTrack.stop();
+                currentTrack = null;
+            }
+        });
+    }
+}
+
+// ==================== TOGGLE FLASH ====================
+async function toggleFlash() {
+    if (!currentTrack) {
+        showNotification('Erreur', 'Aucune caméra active', 'warning');
+        return;
+    }
+    
+    try {
+        const capabilities = currentTrack.getCapabilities();
+        
+        if (!capabilities.torch) {
+            showNotification('Flash non disponible', 'Votre appareil ne supporte pas le flash', 'warning');
+            return;
+        }
+        
+        flashEnabled = !flashEnabled;
+        
+        await currentTrack.applyConstraints({
+            advanced: [{ torch: flashEnabled }]
+        });
+        
+        const btn = document.getElementById('flashToggle');
+        if (flashEnabled) {
+            btn.textContent = '💡 Flash: ON';
+            btn.classList.add('active');
+            showNotification('Flash activé', 'Parfait pour scanner dans l\'obscurité', 'success');
+        } else {
+            btn.textContent = '💡 Flash: OFF';
+            btn.classList.remove('active');
+        }
+    } catch (e) {
+        console.error('Erreur flash:', e);
+        
+        // Tentative alternative avec constraints directes
+        try {
+            await navigator.mediaDevices.getUserMedia({
+                video: {
+                    facingMode: 'environment',
+                    torch: !flashEnabled
+                }
+            });
+            flashEnabled = !flashEnabled;
+            const btn = document.getElementById('flashToggle');
+            btn.textContent = flashEnabled ? '💡 Flash: ON' : '💡 Flash: OFF';
+            if (flashEnabled) btn.classList.add('active');
+            else btn.classList.remove('active');
+        } catch (e2) {
+            showNotification('Erreur flash', 'Impossible d\'activer le flash sur cet appareil', 'error');
+        }
+    }
+}
+
+// ==================== SCAN RAPIDE ====================
+function quickScan() {
+    if (!currentCategory) {
+        startScan('accessoires', 'Accessoires', '🔌');
+    } else {
+        document.getElementById('startScan').click();
+    }
+}
+
+// ==================== VÉRIFIER APPAREIL ====================
+function checkDevice(code){
+    const statusEl = document.getElementById('statusMessage');
+    let found = false;
+    
+    for (let type in baseAppareils){
+        if(baseAppareils[type][code]){
+            statusEl.className = 'status-message status-success';
+            statusEl.textContent = "✅ Appareil reconnu : " + baseAppareils[type][code];
+            document.getElementById('nomAppareil').value = baseAppareils[type][code];
+            found = true;
+            break;
+        }
+    }
+    
+    if(!found) {
+        statusEl.className = 'status-message status-warning';
+        statusEl.textContent = "⚠️ Appareil inconnu dans la base.";
+    }
+}
+
+// ==================== MODAL DOUBLON ====================
+function showDuplicateModal(existingItem, newItem) {
+    pendingDuplicate = newItem;
+    
+    const modal = document.getElementById('duplicateModal');
+    const info = document.getElementById('duplicateInfo');
+    
+    info.innerHTML = `
+        <p style="margin-bottom: 16px; color: #92400E;">
+            Un équipement avec ce numéro de série existe déjà dans l'inventaire.
+        </p>
+        <div class="duplicate-item">
+            <div class="duplicate-item-label">NOM</div>
+            <div class="duplicate-item-value">${existingItem.nom}</div>
+        </div>
+        <div class="duplicate-item">
+            <div class="duplicate-item-label">NUMÉRO DE SÉRIE</div>
+            <div class="duplicate-item-value">${existingItem.numero}</div>
+        </div>
+        <div class="duplicate-item">
+            <div class="duplicate-item-label">CATÉGORIE</div>
+            <div class="duplicate-item-value">${existingItem.type}</div>
+        </div>
+        <div class="duplicate-item">
+            <div class="duplicate-item-label">ÉTAT</div>
+            <div class="duplicate-item-value">${existingItem.etat}</div>
+        </div>
+        <div class="duplicate-item">
+            <div class="duplicate-item-label">QUANTITÉ</div>
+            <div class="duplicate-item-value">${existingItem.quantite || '1'}</div>
+        </div>
+        <div class="duplicate-item">
+            <div class="duplicate-item-label">AJOUTÉ LE</div>
+            <div class="duplicate-item-value">${existingItem.date}</div>
+        </div>
+        <p style="margin-top: 16px; color: #666; font-size: 14px;">
+            Voulez-vous quand même ajouter ce nouvel équipement ?
+        </p>
+    `;
+    
+    modal.classList.add('active');
+}
+
+function closeDuplicateModal() {
+    document.getElementById('duplicateModal').classList.remove('active');
+    pendingDuplicate = null;
+}
+
+function confirmDuplicate() {
+    if (pendingDuplicate) {
+        inventaire.push(pendingDuplicate);
+        localStorage.setItem(storageKey, JSON.stringify(inventaire));
+        
+        addToHistory('ajout', `Ajout : ${pendingDuplicate.nom} (N° ${pendingDuplicate.numero}) - ${pendingDuplicate.type} [DOUBLON]`);
+        
+        renderTable();
+        updateCategoryCounts();
+        document.getElementById('inventoryForm').reset();
+        document.getElementById('statusMessage').textContent = '';
+        closeDuplicateModal();
+        playBeep();
+        showNotification('Ajout confirmé', 'Équipement ajouté malgré le doublon', 'success');
+    }
+}
+
+// ==================== AJOUTER À L'INVENTAIRE ====================
+function handleInventorySubmit(e) {
+    e.preventDefault();
+    
+    const nom = document.getElementById('nomAppareil').value.trim();
+    const numero = document.getElementById('numeroSerie').value.trim();
+    const etat = document.getElementById('etatAppareil').value;
+    const quantite = document.getElementById('quantite').value || '1';
+    const date = new Date().toLocaleString('fr-FR');
+    
+    if(!numero){ 
+        showNotification('Erreur', 'Le numéro de série est obligatoire', 'error');
+        return; 
+    }
+    
+    const existing = inventaire.find(item => item.numero === numero);
+    if (existing) {
+        const newItem = {
+            type: currentCategoryName,
+            nom,
+            numero,
+            etat,
+            quantite,
+            date,
+            operateur: userData.name
+        };
+        showDuplicateModal(existing, newItem);
+        return;
+    }
+    
+    const newItem = {
+        type: currentCategoryName,
+        nom,
+        numero,
+        etat,
+        quantite,
+        date,
+        operateur: userData.name
+    };
+    
+    inventaire.push(newItem);
+    localStorage.setItem(storageKey, JSON.stringify(inventaire));
+    
+    addToHistory('ajout', `Ajout : ${nom} (N° ${numero}) - ${currentCategoryName} - Qté: ${quantite}`);
+    
+    renderTable();
+    updateCategoryCounts();
+    document.getElementById('inventoryForm').reset();
+    document.getElementById('statusMessage').textContent = '';
+    playBeep();
+    showNotification('Succès', 'Équipement ajouté à l\'inventaire', 'success');
+}
+
+// ==================== TRI DU TABLEAU ====================
+function sortTable(column) {
+    if (currentSort.column === column) {
+        currentSort.ascending = !currentSort.ascending;
+    } else {
+        currentSort.column = column;
+        currentSort.ascending = true;
+    }
+    renderTable(document.getElementById('searchBar').value);
+}
+
+// ==================== AFFICHER TABLEAU ====================
+function renderTable(filter=""){
+    const tableBody = document.getElementById('tableBody');
+    tableBody.innerHTML = "";
+    
+    filteredItems = inventaire.filter(item => {
+        const matchCategory = item.type === currentCategoryName;
+        const matchSearch = Object.values(item).some(v => 
+            String(v).toLowerCase().includes(filter.toLowerCase())
+        );
+        const matchFilter = currentFilter === 'all' || item.etat === currentFilter;
+        
+        return matchCategory && matchSearch && matchFilter;
+    });
+    
+    filteredItems.sort((a, b) => {
+        let valA = a[currentSort.column] || '';
+        let valB = b[currentSort.column] || '';
+        
+        if (currentSort.column === 'date') {
+            valA = new Date(valA.split(' ')[0].split('/').reverse().join('-'));
+            valB = new Date(valB.split(' ')[0].split('/').reverse().join('-'));
+        }
+        
+        if (valA < valB) return currentSort.ascending ? -1 : 1;
+        if (valA > valB) return currentSort.ascending ? 1 : -1;
+        return 0;
+    });
+    
+    document.getElementById('inventoryCount').textContent = filteredItems.length;
+    
+    filteredItems.forEach((item) => {
+        const realIndex = inventaire.indexOf(item);
+        
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td>${item.type}</td>
+            <td>${item.nom}</td>
+            <td style="font-family: 'Courier New', monospace; font-weight: bold;">${item.numero}</td>
+            <td>${item.etat}</td>
+            <td style="text-align: center; font-weight: bold;">${item.quantite || '1'}</td>
+            <td style="font-size: 12px; color: var(--text-secondary);">${item.date}</td>
+            <td><button class="btn-delete" onclick="deleteItem(${realIndex})">🗑</button></td>
+        `;
+        tableBody.appendChild(tr);
+    });
+    
+    if (filteredItems.length === 0) {
+        const tr = document.createElement('tr');
+        tr.innerHTML = '<td colspan="7" style="text-align:center; padding:24px; color:var(--text-secondary);">Aucun élément trouvé</td>';
+        tableBody.appendChild(tr);
+    }
+}
+
+// ==================== SUPPRIMER ====================
+function deleteItem(realIndex){
+    const item = inventaire[realIndex];
+    if(confirm(`Supprimer cet enregistrement ?\n\n${item.nom}\nN° série: ${item.numero}`)){
+        
+        addToHistory('suppression', `Suppression : ${item.nom} (N° ${item.numero}) - ${item.type}`);
+        
+        inventaire.splice(realIndex, 1);
+        localStorage.setItem(storageKey, JSON.stringify(inventaire));
+        renderTable(document.getElementById('searchBar').value);
+        updateCategoryCounts();
+        playBeep();
+        showNotification('Supprimé', 'Équipement retiré de l\'inventaire', 'success');
+    }
+}
+
+// ==================== VIDER L'INVENTAIRE ====================
+function clearInventory() {
+    if (inventaire.length === 0) {
+        showNotification('Information', 'L\'inventaire est déjà vide', 'info');
+        return;
+    }
+    
+    if (confirm(`⚠️ ATTENTION !\n\nVoulez-vous vraiment supprimer TOUS les ${inventaire.length} éléments de l'inventaire ?\n\nCette action est irréversible !`)) {
+        if (confirm("Êtes-vous vraiment sûr ? Cette action ne peut pas être annulée.")) {
+            addToHistory('suppression', `Vidage complet de l'inventaire (${inventaire.length} éléments supprimés)`);
+            
+            inventaire = [];
+            localStorage.setItem(storageKey, JSON.stringify(inventaire));
+            renderTable();
+            updateCategoryCounts();
+            showNotification('Inventaire vidé', 'Tous les éléments ont été supprimés', 'success');
+        }
+    }
+}
+
+// ==================== EXPORT CSV ====================
+function exportCSV() {
+    if(inventaire.length === 0){ 
+        showNotification('Erreur', 'Aucune donnée à exporter', 'error');
+        return; 
+    }
+    
+    try {
+        const csv = [
+            ["Type","Nom","Numéro de série","État","Quantité","Date","Opérateur"].join(","),
+            ...inventaire.map(i => [
+                i.type, 
+                i.nom, 
+                i.numero, 
+                i.etat, 
+                i.quantite || '1', 
+                i.date, 
+                i.operateur
+            ].map(v => '"' + String(v).replace(/"/g,'""') + '"').join(","))
+        ].join("\n");
+
+        const BOM = "\uFEFF";
+        const blob = new Blob([BOM + csv], { type: "text/csv;charset=utf-8;" });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        
+        const timestamp = new Date().toISOString().slice(0,19).replace(/[T:]/g,'-');
+        link.download = `inventaire_mediametrie_${timestamp}.csv`;
+        link.href = url;
+        
+        link.style.display = 'none';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        setTimeout(() => URL.revokeObjectURL(url), 100);
+        
+        addToHistory('export', `Export CSV de ${inventaire.length} éléments`);
+        playBeep();
+        showNotification('Export réussi', `${inventaire.length} élément(s) exporté(s) en CSV`, 'success');
+    } catch (error) {
+        console.error("Erreur export:", error);
+        showNotification('Erreur', 'Échec de l\'export CSV', 'error');
+    }
+}
+
+// ==================== EXPORT PDF ====================
+function exportPDF() {
+    if(inventaire.length === 0){ 
+        showNotification('Erreur', 'Aucune donnée à exporter', 'error');
+        return; 
+    }
+    
+    try {
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+        
+        doc.setFontSize(20);
+        doc.setTextColor(227, 6, 19);
+        doc.text('Médiamétrie - Inventaire', 14, 20);
+        
+        doc.setFontSize(10);
+        doc.setTextColor(100);
+        doc.text(`Généré le ${new Date().toLocaleString('fr-FR')}`, 14, 27);
+        doc.text(`Par ${userData.name} (${userData.id})`, 14, 32);
+        
+        const stats = {
+            'Accessoires': 0,
+            'TVM3': 0,
+            'Streaming Meters': 0
+        };
+        inventaire.forEach(item => {
+            if (stats.hasOwnProperty(item.type)) stats[item.type]++;
+        });
+        
+        doc.setFontSize(11);
+        doc.setTextColor(0);
+        doc.text(`Total: ${inventaire.length} | Accessoires: ${stats['Accessoires']} | TVM3: ${stats['TVM3']} | Streaming: ${stats['Streaming Meters']}`, 14, 40);
+        
+        const tableData = inventaire.map(item => [
+            item.type,
+            item.nom,
+            item.numero,
+            item.etat,
+            item.quantite || '1',
+            item.date
+        ]);
+        
+        doc.autoTable({
+            startY: 45,
+            head: [['Type', 'Nom', 'N° Série', 'État', 'Quantité', 'Date']],
+            body: tableData,
+            theme: 'striped',
+            headStyles: { 
+                fillColor: [227, 6, 19],
+                textColor: 255,
+                fontStyle: 'bold'
+            },
+            styles: {
+                fontSize: 8,
+                cellPadding: 3
+            },
+            columnStyles: {
+                2: { fontStyle: 'bold', font: 'courier' }
+            }
+        });
+        
+        const timestamp = new Date().toISOString().slice(0,19).replace(/[T:]/g,'-');
+        doc.save(`inventaire_mediametrie_${timestamp}.pdf`);
+        
+        addToHistory('export', `Export PDF de ${inventaire.length} éléments`);
+        playBeep();
+        showNotification('Export réussi', `${inventaire.length} élément(s) exporté(s) en PDF`, 'success');
+    } catch (error) {
+        console.error("Erreur export PDF:", error);
+        showNotification('Erreur', 'Échec de l\'export PDF', 'error');
+    }
+}
+
+// ==================== ENVOYER PAR EMAIL ====================
+function sendEmail() {
+    if(inventaire.length === 0){ 
+        showNotification('Erreur', 'Aucune donnée à envoyer', 'error');
+        return; 
+    }
+    
+    const emails = [emailSettings.email1, emailSettings.email2, emailSettings.email3]
+        .filter(e => e && e.trim())
+        .join(';');
+    
+    const csv = [
+        ["Type","Nom","Numéro de série","État","Quantité","Date","Opérateur"].join(","),
+        ...inventaire.map(i => [
+            i.type, i.nom, i.numero, i.etat, i.quantite || '1', i.date, i.operateur
+        ].map(v => '"' + String(v).replace(/"/g,'""') + '"').join(","))
+    ].join("\n");
+    
+    const subject = encodeURIComponent(`Inventaire Médiamétrie - ${new Date().toLocaleDateString('fr-FR')}`);
+    const body = encodeURIComponent(
+        `Bonjour,\n\nVeuillez trouver ci-dessous l'inventaire Médiamétrie :\n\n` +
+        `Total d'éléments : ${inventaire.length}\n` +
+        `Exporté par : ${userData.name} (${userData.id})\n` +
+        `Date : ${new Date().toLocaleString('fr-FR')}\n\n` +
+        `Détails (format CSV) :\n\n${csv}\n\n` +
+        `Cordialement,\n${userData.name}`
+    );
+    
+    window.location.href = `mailto:${emails}?subject=${subject}&body=${body}`;
+    
+    addToHistory('export', `Envoi par email de ${inventaire.length} éléments vers ${emails || 'destinataire'}`);
+    playBeep();
+    showNotification('Email préparé', 'Client email ouvert', 'info');
+}
+
+// ==================== SYNCHRONISER BASE ====================
+async function syncDatabase() {
+    if (!navigator.onLine) {
+        showNotification('Erreur', 'Vous êtes hors ligne', 'error');
+        return;
+    }
+    
+    const confirmSync = confirm("⚠️ Cette action va télécharger la base de données des appareils depuis le serveur.\n\nContinuer ?");
+    if (!confirmSync) return;
+    
+    try {
+        showNotification('Synchronisation', 'Téléchargement en cours...', 'info');
+        
+        const res = await fetch("https://elailam.fr/inventaire/appareils.json?_=" + Date.now());
+        if(!res.ok) throw new Error(`Erreur HTTP ${res.status}`);
+        
+        const data = await res.json();
+        
+        if (typeof data !== 'object') {
+            throw new Error("Format de données invalide");
+        }
+        
+        baseAppareils = data;
+        localStorage.setItem("baseAppareils", JSON.stringify(baseAppareils));
+        playBeep();
+        
+        let totalDevices = 0;
+        for (let category in baseAppareils) {
+            if (typeof baseAppareils[category] === 'object') {
+                totalDevices += Object.keys(baseAppareils[category]).length;
+            }
+        }
+        
+        addToHistory('synchronisation', `Mise à jour de la base (${totalDevices} appareils)`);
+        showNotification('Synchronisation réussie', `${totalDevices} appareil(s) dans la base`, 'success');
+    } catch(e) {
+        console.error("Erreur sync:", e);
+        showNotification('Erreur de synchronisation', e.message, 'error');
+    }
+}
+
+// ==================== DASHBOARD ====================
+function showDashboard() {
+    showScreen('dashboardScreen');
+    updateDashboard();
+}
+
+function updateDashboard() {
+    const counts = {
+        'Accessoires': 0,
+        'TVM3': 0,
+        'Streaming Meters': 0
+    };
+    
+    inventaire.forEach(item => {
+        if (counts.hasOwnProperty(item.type)) {
+            counts[item.type]++;
+        }
+    });
+    
+    document.getElementById('dashTotalItems').textContent = inventaire.length;
+    document.getElementById('dashAccessoires').textContent = counts['Accessoires'];
+    document.getElementById('dashTvm3').textContent = counts['TVM3'];
+    document.getElementById('dashStreaming').textContent = counts['Streaming Meters'];
+    
+    const states = {
+        'Fonctionnel': 0,
+        'En panne': 0,
+        'En SAV': 0,
+        'En test': 0
+    };
+    
+    inventaire.forEach(item => {
+        if (states.hasOwnProperty(item.etat)) {
+            states[item.etat]++;
+        }
+    });
+    
+    document.getElementById('dashFonctionnel').textContent = states['Fonctionnel'];
+    document.getElementById('dashPanne').textContent = states['En panne'];
+    document.getElementById('dashSAV').textContent = states['En SAV'];
+    document.getElementById('dashTest').textContent = states['En test'];
+    
+    const now = new Date();
+    const today = now.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    
+    const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    
+    const actionsToday = historique.filter(h => h.date === today).length;
+    const actionsWeek = historique.filter(h => {
+        const actionDate = new Date(h.date.split('/').reverse().join('-'));
+        return actionDate >= oneWeekAgo;
+    }).length;
+    
+    document.getElementById('dashToday').textContent = actionsToday;
+    document.getElementById('dashWeek').textContent = actionsWeek;
+    document.getElementById('dashTotalActions').textContent = historique.length;
+    
+    // Graphique catégories
+    const ctxCat = document.getElementById('categoryChart');
+    if (ctxCat) {
+        new Chart(ctxCat, {
+            type: 'doughnut',
+            data: {
+                labels: ['Accessoires', 'TVM3', 'Streaming Meters'],
+                datasets: [{
+                    data: [counts['Accessoires'], counts['TVM3'], counts['Streaming Meters']],
+                    backgroundColor: ['#3B82F6', '#8B5CF6', '#10B981'],
+                    borderWidth: 0
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom'
+                    }
+                }
+            }
+        });
+    }
+    
+    // Graphique états
+    const ctxState = document.getElementById('stateChart');
+    if (ctxState) {
+        new Chart(ctxState, {
+            type: 'pie',
+            data: {
+                labels: ['Fonctionnel', 'En panne', 'En SAV', 'En test'],
+                datasets: [{
+                    data: [states['Fonctionnel'], states['En panne'], states['En SAV'], states['En test']],
+                    backgroundColor: ['#10B981', '#EF4444', '#F59E0B', '#3B82F6'],
+                    borderWidth: 0
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom'
+                    }
+                }
+            }
+        });
+    }
+    
+    // Graphique activité
+    const ctxActivity = document.getElementById('activityChart');
+    if (ctxActivity) {
+        const last7Days = [];
+        const activityData = [];
+        
+        for (let i = 6; i >= 0; i--) {
+            const date = new Date(now.getTime() - i * 24 * 60 * 60 * 1000);
+            const dateStr = date.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' });
+            last7Days.push(dateStr);
+            
+            const fullDateStr = date.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+            const count = historique.filter(h => h.date === fullDateStr).length;
+            activityData.push(count);
+        }
+        
+        new Chart(ctxActivity, {
+            type: 'line',
+            data: {
+                labels: last7Days,
+                datasets: [{
+                    label: 'Actions',
+                    data: activityData,
+                    borderColor: '#E30613',
+                    backgroundColor: 'rgba(227, 6, 19, 0.1)',
+                    tension: 0.4,
+                    fill: true
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            stepSize: 1
+                        }
+                    }
+                }
+            }
+        });
+    }
+}
+
+// ==================== HISTORIQUE ====================
+function showHistoryScreen() {
+    showScreen('historyScreen');
+    renderHistory();
+}
+
+function renderHistory(filter = "") {
+    const container = document.getElementById('historyContainer');
+    container.innerHTML = "";
+    
+    let filtered = historique;
+    if (filter) {
+        const query = filter.toLowerCase();
+        filtered = historique.filter(h => 
+            h.action.toLowerCase().includes(query) ||
+            h.details.toLowerCase().includes(query) ||
+            h.operateur.toLowerCase().includes(query) ||
+            h.date.includes(query) ||
+            h.time.includes(query)
+        );
+    }
+    
+    if (filtered.length === 0) {
+        container.innerHTML = '<div class="no-history">📭 Aucun historique disponible</div>';
+        return;
+    }
+    
+    filtered.forEach(item => {
+        const div = document.createElement('div');
+        div.className = `history-item ${item.action}`;
+        
+        let actionIcon = '';
+        let actionText = '';
+        
+        switch(item.action) {
+            case 'ajout':
+                actionIcon = '➕';
+                actionText = 'AJOUT';
+                break;
+            case 'suppression':
+                actionIcon = '🗑️';
+                actionText = 'SUPPRESSION';
+                break;
+            case 'export':
+                actionIcon = '📥';
+                actionText = 'EXPORT';
+                break;
+            case 'synchronisation':
+                actionIcon = '🔄';
+                actionText = 'SYNCHRONISATION';
+                break;
+            default:
+                actionIcon = '📝';
+                actionText = item.action.toUpperCase();
+        }
+        
+        div.innerHTML = `
+            <div class="history-header">
+                <div class="history-action">${actionIcon} ${actionText}</div>
+                <div class="history-date">${item.date} à ${item.time}</div>
+            </div>
+            <div class="history-details">${item.details}</div>
+            <div class="history-operator">Par : ${item.operateur}</div>
+        `;
+        
+        container.appendChild(div);
+    });
+}
+
+function exportHistoryCSV() {
+    if(historique.length === 0){ 
+        showNotification('Erreur', 'Aucun historique à exporter', 'error');
+        return; 
+    }
+    
+    try {
+        const csv = [
+            ["Action","Détails","Date","Heure","Opérateur"].join(","),
+            ...historique.map(h => [
+                h.action, 
+                h.details, 
+                h.date, 
+                h.time, 
+                h.operateur
+            ].map(v => '"' + String(v).replace(/"/g,'""') + '"').join(","))
+        ].join("\n");
+
+        const BOM = "\uFEFF";
+        const blob = new Blob([BOM + csv], { type: "text/csv;charset=utf-8;" });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        
+        const timestamp = new Date().toISOString().slice(0,19).replace(/[T:]/g,'-');
+        link.download = `historique_mediametrie_${timestamp}.csv`;
+        link.href = url;
+        
+        link.style.display = 'none';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        setTimeout(() => URL.revokeObjectURL(url), 100);
+        
+        playBeep();
+        showNotification('Export réussi', `${historique.length} action(s) exportée(s)`, 'success');
+    } catch (error) {
+        console.error("Erreur export:", error);
+        showNotification('Erreur', 'Échec de l\'export', 'error');
+    }
+}
+
+function clearHistory() {
+    if (historique.length === 0) {
+        showNotification('Information', 'L\'historique est déjà vide', 'info');
+        return;
+    }
+    
+    if (confirm(`Voulez-vous vraiment effacer tout l'historique ?\n\n${historique.length} action(s) seront supprimées.`)) {
+        historique = [];
+        localStorage.setItem(historyKey, JSON.stringify(historique));
+        renderHistory();
+        updateCategoryCounts();
+        showNotification('Historique vidé', 'Toutes les actions ont été supprimées', 'success');
+    }
+}
+
+// ==================== QR CODES ====================
+function showQRCodesScreen() {
+    showScreen('qrCodesScreen');
+    
+    document.getElementById('qr-hdmi').innerHTML = '';
+    document.getElementById('qr-optique').innerHTML = '';
+    document.getElementById('qr-wifi').innerHTML = '';
+    
+    setTimeout(() => {
+        new QRCode(document.getElementById("qr-hdmi"), {
+            text: "HDMI-2024-001",
+            width: 150,
+            height: 150,
+            colorDark: "#000000",
+            colorLight: "#ffffff",
+            correctLevel: QRCode.CorrectLevel.H
+        });
+
+        new QRCode(document.getElementById("qr-optique"), {
+            text: "OPT-2024-001",
+            width: 150,
+            height: 150,
+            colorDark: "#000000",
+            colorLight: "#ffffff",
+            correctLevel: QRCode.CorrectLevel.H
+        });
+
+        new QRCode(document.getElementById("qr-wifi"), {
+            text: "WIFI-2024-001",
+            width: 150,
+            height: 150,
+            colorDark: "#000000",
+            colorLight: "#ffffff",
+            correctLevel: QRCode.CorrectLevel.H
+        });
+    }, 100);
+}
+
+// ==================== PARAMÈTRES EMAIL ====================
+function showSettingsScreen() {
+    showScreen('settingsScreen');
+    renderEmailSettings();
+}
+
+function renderEmailSettings() {
+    const emailList = document.getElementById('emailList');
+    emailList.innerHTML = `
+        <div class="email-item">
+            <input type="email" id="email1" placeholder="Email 1 (optionnel)" value="${emailSettings.email1 || ''}">
+        </div>
+        <div class="email-item">
+            <input type="email" id="email2" placeholder="Email 2 (optionnel)" value="${emailSettings.email2 || ''}">
+        </div>
+        <div class="email-item">
+            <input type="email" id="email3" placeholder="Email 3 (optionnel)" value="${emailSettings.email3 || ''}">
+        </div>
+    `;
+}
+
+function saveEmailSettings() {
+    const email1 = document.getElementById('email1').value.trim();
+    const email2 = document.getElementById('email2').value.trim();
+    const email3 = document.getElementById('email3').value.trim();
+    
+    emailSettings = { email1, email2, email3 };
+    localStorage.setItem(emailKey, JSON.stringify(emailSettings));
+    
+    const count = [email1, email2, email3].filter(e => e).length;
+    playBeep();
+    showNotification('Paramètres sauvegardés', `${count} email(s) configuré(s)`, 'success');
+}
+
+// ==================== ASSISTANT VOCAL ====================
+function initVoiceRecognition() {
+    if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+        console.log('Reconnaissance vocale non supportée');
+        return;
+    }
+    
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    voiceRecognition = new SpeechRecognition();
+    voiceRecognition.lang = 'fr-FR';
+    voiceRecognition.continuous = false;
+    voiceRecognition.interimResults = false;
+    
+    voiceRecognition.onresult = function(event) {
+        const transcript = event.results[0][0].transcript.toLowerCase();
+        processVoiceCommand(transcript);
+    };
+    
+    voiceRecognition.onerror = function(event) {
+        console.error('Erreur reconnaissance vocale:', event.error);
+        document.getElementById('voiceBtn').classList.remove('listening');
+        isListening = false;
+        showNotification('Erreur vocale', 'Impossible de reconnaître la commande', 'error');
+    };
+    
+    voiceRecognition.onend = function() {
+        document.getElementById('voiceBtn').classList.remove('listening');
+        isListening = false;
+    };
+}
+
+function toggleVoice() {
+    if (!voiceRecognition) {
+        showNotification('Non supporté', 'La reconnaissance vocale n\'est pas disponible', 'warning');
+        return;
+    }
+    
+    if (isListening) {
+        voiceRecognition.stop();
+        document.getElementById('voiceBtn').classList.remove('listening');
+        isListening = false;
+    } else {
+        voiceRecognition.start();
+        document.getElementById('voiceBtn').classList.add('listening');
+        isListening = true;
+        showNotification('Écoute active', 'Dites votre commande...', 'info');
+    }
+}
+
+function processVoiceCommand(transcript) {
+    console.log('Commande vocale:', transcript);
+    
+    // Commande: ajouter un équipement
+    if (transcript.includes('ajoute') || transcript.includes('ajouter')) {
+        let type = 'Accessoires';
+        if (transcript.includes('tvm3') || transcript.includes('tv m3')) {
+            type = 'TVM3';
+        } else if (transcript.includes('streaming')) {
+            type = 'Streaming Meters';
+        }
+        
+        // Extraire le numéro de série
+        const numMatch = transcript.match(/numéro\s*(\d+)/i) || transcript.match(/série\s*(\d+)/i);
+        const numero = numMatch ? numMatch[1] : 'VOICE-' + Date.now();
+        
+        // Extraire l'état
+        let etat = 'Fonctionnel';
+        if (transcript.includes('panne')) {
+            etat = 'En panne';
+        } else if (transcript.includes('sav')) {
+            etat = 'En SAV';
+        } else if (transcript.includes('test')) {
+            etat = 'En test';
+        }
+        
+        const newItem = {
+            type: type,
+            nom: `Équipement vocal ${numero}`,
+            numero: numero,
+            etat: etat,
+            quantite: '1',
+            date: new Date().toLocaleString('fr-FR'),
+            operateur: userData.name
+        };
+        
+        inventaire.push(newItem);
+        localStorage.setItem(storageKey, JSON.stringify(inventaire));
+        addToHistory('ajout', `Ajout vocal : ${newItem.nom} (N° ${numero}) - ${type}`);
+        updateCategoryCounts();
+        playBeep();
+        showNotification('Ajout réussi', `${type} ajouté par commande vocale`, 'success');
+    }
+    // Commande: afficher le dashboard
+    else if (transcript.includes('dashboard') || transcript.includes('tableau') || transcript.includes('statistiques')) {
+        showDashboard();
+        showNotification('Navigation', 'Affichage du tableau de bord', 'info');
+    }
+    // Commande: exporter
+    else if (transcript.includes('export') || transcript.includes('télécharge')) {
+        if (transcript.includes('pdf')) {
+            exportPDF();
+        } else {
+            exportCSV();
+        }
+    }
+    // Commande: synchroniser
+    else if (transcript.includes('synchronise') || transcript.includes('sync')) {
+        syncDatabase();
+    }
+    else {
+        showNotification('Commande inconnue', 'Essayez: "Ajoute un TVM3 numéro 2045"', 'warning');
+    }
+}
+
+// ==================== RETOUR MENU ====================
+function backToMain() {
+    stopScanning();
+    document.getElementById('searchBar').value = '';
+    currentFilter = 'all';
+    document.querySelectorAll('.filter-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.filter === 'all');
+    });
+    updateCategoryCounts();
+    showScreen('mainScreen');
+}
+
+// ==================== BIP SONORE ====================
+function playBeep() {
+    try {
+        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        const oscillator = audioContext.createOscillator();
+        const gainNode = audioContext.createGain();
+        
+        oscillator.connect(gainNode);
+        gainNode.connect(audioContext.destination);
+        
+        oscillator.frequency.value = 800;
+        oscillator.type = 'sine';
+        
+        gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.15);
+        
+        oscillator.start(audioContext.currentTime);
+        oscillator.stop(audioContext.currentTime + 0.15);
+    } catch (error) {
+        console.log('Beep error:', error);
+    }
+}
+</script>
+
+</body>
+</html>
